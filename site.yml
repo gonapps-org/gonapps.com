@@ -1,0 +1,208 @@
+---
+- name: playbook-tutorial
+  hosts: all
+  tasks:
+
+    - name: disable-selinux
+      become: true
+      selinux:
+        policy: targeted
+        state: permissive
+
+########
+
+    - name: epel-install
+      become: true
+      yum:
+        name: epel-release
+        state: latest
+
+    - name: firesalld-install
+      become: true
+      yum:
+        name: firewalld
+        state: absent
+
+    - name: iptables-services-install
+      become: true
+      yum:
+        name: iptables-services
+        state: latest
+
+    - name: libselinux-python-install
+      become: true
+      yum:
+        name: libselinux-python
+        state: latest
+
+    - name: policycoreutils-python-install
+      become: true
+      yum:
+        name: policycoreutils-python
+        state: latest
+
+    - name: docker-install
+      become: true
+      yum:
+        name: docker
+        state: latest
+
+    - name: fail2ban-install
+      become: true
+      yum:
+        name: fail2ban
+        state: latest
+
+    - name: pip-install
+      become: true
+      yum:
+        name: python-pip
+        state: latest
+
+    - name: docker-compose-install
+      become: true
+      pip:
+        name: docker-compose
+        state: latest
+
+########
+
+    - name: iptables-copy
+      become: true
+      synchronize:
+        src: ./conf/etc/sysconfig/iptables
+        dest: /etc/sysconfig/iptables
+        checksum: true
+
+    - name: docker-compose.yml-copy
+      become: true
+      synchronize:
+        src: ./conf/srv/docker-compose.yml
+        dest: /srv/docker-compose.yml
+        checksum: true
+
+    - name: jail.local-copy
+      become: true
+      synchronize:
+        src: ./conf/etc/fail2ban/jail.local
+        dest: /etc/fail2ban/jail.local
+        checksum: true
+
+    - name: docker-vol-copy
+      become: true
+      synchronize:
+        src: ./vol
+        dest: /srv/
+        checksum: true
+
+    - name: srv-vol-data-mkdir
+      become: true
+      file:
+        path: /srv/vol/data
+        state: directory
+
+    - name: openssl-ca-key
+      become: true
+      openssl_privatekey:
+        path: /srv/vol/data/server-ca.pem
+        size: 4096
+
+    - name: openssl-ca-csr
+      become: true
+      openssl_csr:
+        path: /srv/vol/data/server-ca.csr
+        privatekey_path: /srv/vol/data/server-ca.pem
+
+    - name: openssl-ca-cert
+      become: true
+      openssl_certificate:
+        path: /srv/vol/data/server-ca.crt
+        privatekey_path: /srv/vol/data/server-ca.pem
+        csr_path: /srv/vol/data/server-ca.csr
+        provider: selfsigned
+
+    - name: openssl-key
+      become: true
+      openssl_privatekey:
+        path: /srv/vol/data/server.pem
+        size: 4096
+
+    - name: openssl-csr
+      become: true
+      openssl_csr:
+        path: /srv/vol/data/server.csr
+        privatekey_path: /srv/vol/data/server.pem
+
+    - name: openssl-cert
+      become: true
+      openssl_certificate:
+        path: /srv/vol/data/server.crt
+        privatekey_path: /srv/vol/data/server.pem
+        csr_path: /srv/vol/data/server.csr
+        ownca_path: /srv/vol/data/server-ca.crt
+        ownca_privatekey_path: /srv/vol/data/server-ca.pem
+        provider: ownca
+
+#    - name: openssl-cert
+#      become: true
+#      openssl_certificate:
+#        path: /etc/stunnel/redis-server.crt
+#        privatekey_path: /etc/stunnel/redis-server.key
+#        csr_path: /etc/stunnel/redis-server.csr
+
+########
+
+    - name: add-group
+      become: true
+      group:
+        name: 'docker'
+        state: present
+
+    - name: add-group-user
+      become: true
+      user:
+        name: '{{ ansible_user_id }}'
+        groups: docker
+        append: yes
+
+    - name: reset-ssh
+      meta: reset_connection
+
+########
+
+    - name: docker-service
+      become: true
+      service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: fail2ban-service
+      become: true
+      service:
+        name: fail2ban
+        state: started
+        enabled: true
+
+    - name: docker-compose
+      docker_compose:
+        project_src: /srv
+
+
+    - name: firewalld-service
+      become: true
+      service:
+        name: firewalld
+        state: stopped
+        enabled: false
+
+    - name: iptables-service
+      become: true
+      service:
+        name: iptables
+        state: started
+        enabled: true
+
+#    - name: reboot
+#      become: true
+#      reboot:
