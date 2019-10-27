@@ -188,7 +188,6 @@
       docker_compose:
         project_src: /srv
 
-
     - name: firewalld-service
       become: true
       service:
