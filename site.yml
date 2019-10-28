@@ -1,5 +1,5 @@
 ---
-- name: playbook-tutorial
+- name: gonapps.com-ansible
   hosts: all
   tasks:
 
@@ -11,59 +11,35 @@
 
 ########
 
-    - name: epel-install
+    - name: uninstall-packages
       become: true
       yum:
-        name: epel-release
-        state: latest
-
-    - name: firesalld-install
-      become: true
-      yum:
-        name: firewalld
+        name: "{{ item }}"
         state: absent
+      loop:
+        - firewalld
 
-    - name: iptables-services-install
+    - name: install-packages
       become: true
       yum:
-        name: iptables-services
+        name: "{{ item }}"
         state: latest
+      loop:
+        - epel-release
+        - iptables-services
+        - libselinux-python
+        - policycoreutils-python
+        - docker
+        - fail2ban
+        - python-pip
 
-    - name: libselinux-python-install
-      become: true
-      yum:
-        name: libselinux-python
-        state: latest
-
-    - name: policycoreutils-python-install
-      become: true
-      yum:
-        name: policycoreutils-python
-        state: latest
-
-    - name: docker-install
-      become: true
-      yum:
-        name: docker
-        state: latest
-
-    - name: fail2ban-install
-      become: true
-      yum:
-        name: fail2ban
-        state: latest
-
-    - name: pip-install
-      become: true
-      yum:
-        name: python-pip
-        state: latest
-
-    - name: docker-compose-install
+    - name: install-pip-packages
       become: true
       pip:
-        name: docker-compose
+        name: "{{ item }}"
         state: latest
+      loop:
+        - docker-compose
 
 ########
 
@@ -143,12 +119,6 @@
         ownca_privatekey_path: /srv/vol/data/server-ca.pem
         provider: ownca
 
-#    - name: openssl-cert
-#      become: true
-#      openssl_certificate:
-#        path: /etc/stunnel/redis-server.crt
-#        privatekey_path: /etc/stunnel/redis-server.key
-#        csr_path: /etc/stunnel/redis-server.csr
 
 ########
 
