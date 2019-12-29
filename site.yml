@@ -2,15 +2,7 @@
 - name: gonapps.com-ansible
   hosts: all
   tasks:
-
-    - name: disable-selinux
-      become: true
-      selinux:
-        policy: targeted
-        state: permissive
-
 ########
-
     - name: uninstall-packages
       become: true
       yum:
@@ -31,15 +23,29 @@
         - policycoreutils-python
         - docker
         - fail2ban
+        - gcc
+        - python
+        - python-devel
         - python-pip
+
+    - name: disable-selinux
+      become: true
+      selinux:
+        policy: targeted
+        state: permissive
 
     - name: install-pip-packages
       become: true
       pip:
+        executable: pip
         name: "{{ item }}"
         state: latest
       loop:
+        - docker
         - docker-compose
+        - cryptography
+        - requests
+        - more-itertools==5.0.0
 
 ########
 
@@ -104,7 +110,6 @@
         ownca_path: /srv/vol/data/server-ca.crt
         ownca_privatekey_path: /srv/vol/data/server-ca.pem
         provider: ownca
-
 
 ########
 
