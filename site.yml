@@ -16,17 +16,14 @@
       uri:
         url: https://download.docker.com/linux/centos/docker-ce.repo
         dest: /etc/yum.repos.d/docker-ce.repo
-        status_code: 200
+        status_code:
+          - 200
+          - 304
 
     - name: dnf-makecache
       become: true
       dnf:
         update_cache: true
-
-    - name: install-docker-ce
-      become: true
-      shell:
-        dnf install docker-ce --nobest -y
 
     - name: install-packages
       become: true
@@ -34,6 +31,8 @@
         name: "{{ item }}"
         state: latest
       loop:
+        - https://download.docker.com/linux/centos/7/x86_64/stable/Packages/containerd.io-1.2.2-3.3.el7.x86_64.rpm
+        - docker-ce
         - epel-release
         - iptables-services
         - iptables-utils
