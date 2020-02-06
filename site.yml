@@ -10,6 +10,7 @@
         state: absent
       loop:
         - firewalld
+        - docker
 
     - name: download-docker-ce
       become: true
