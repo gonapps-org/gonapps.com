@@ -5,28 +5,49 @@
 ########
     - name: uninstall-packages
       become: true
-      yum:
+      dnf:
         name: "{{ item }}"
         state: absent
       loop:
         - firewalld
 
+    - name: download-docker-ce
+      become: true
+      uri:
+        url: https://download.docker.com/linux/centos/docker-ce.repo
+        dest: /etc/yum.repos.d/docker-ce.repo
+        status_code: 200
+
+    - name: dnf-makecache
+      become: true
+      dnf:
+        update_cache: true
+
+    - name: install-docker-ce
+      become: true
+      shell:
+        dnf install docker-ce --nobest -y
+
     - name: install-packages
       become: true
-      yum:
+      dnf:
         name: "{{ item }}"
         state: latest
       loop:
         - epel-release
         - iptables-services
-        - libselinux-python
-        - policycoreutils-python
-        - docker
+        - iptables-utils
+        - libselinux
+        - libselinux-utils
+        - python3-libselinux
+        - policycoreutils
+        - policycoreutils-python-utils
+        - python3-policycoreutils
         - fail2ban
         - gcc
-        - python
-        - python-devel
-        - python-pip
+        - python3
+        - python3-devel
+        - python3-pip
 
     - name: disable-selinux
       become: true
@@ -34,18 +55,15 @@
         policy: targeted
         state: permissive
 
-    - name: install-pip-packages
+    - name: install-pip3-packages
       become: true
       pip:
-        executable: pip
+        executable: pip3
         name: "{{ item }}"
         state: latest
       loop:
         - docker
         - docker-compose
-        - cryptography
-        - requests
-        - more-itertools==5.0.0
 
 ########
 
