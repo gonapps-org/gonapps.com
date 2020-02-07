@@ -3,15 +3,16 @@
   hosts: all
   tasks:
 ########
+
     - name: set-hostname
       become: true
       hostname:
-        name: gonapps-server
+        name: gonapps-vm
 
-    - name: uninstall-packages
+    - name: uninstall-dnf-packages
       become: true
       dnf:
-        name: "{{ item }}"
+        name: '{{ item }}'
         state: absent
       loop:
         - firewalld
@@ -33,13 +34,14 @@
       dnf:
         update_cache: true
 
-    - name: install-packages
+    - name: install-dnf-packages
       become: true
       dnf:
-        name: "{{ item }}"
+        name: '{{ item }}'
         state: latest
       loop:
         - https://download.docker.com/linux/centos/7/x86_64/stable/Packages/containerd.io-1.2.2-3.3.el7.x86_64.rpm
+        - https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
         - docker-ce
         - epel-release
         - iptables-services
@@ -52,9 +54,12 @@
         - python3-policycoreutils
         - fail2ban
         - gcc
+        - gcc-c++
         - python3
         - python3-devel
         - python3-pip
+        - go
+        - git
 
     - name: disable-selinux
       become: true
@@ -66,7 +71,7 @@
       become: true
       pip:
         executable: pip3
-        name: "{{ item }}"
+        name: '{{ item }}'
         state: latest
       loop:
         - docker
@@ -78,21 +83,47 @@
       tags: copy-files
       become: true
       copy:
-        src: "{{ item[0] }}"
-        dest: "{{ item[1] }}"
+        src: '{{ item[0] }}'
+        dest: '{{ item[1] }}'
       loop:
         - ['./conf/etc/sysconfig/iptables', '/etc/sysconfig/iptables']
         - ['./conf/srv/docker-compose.yml', '/srv/docker-compose.yml']
         - ['./conf/etc/fail2ban/jail.local', '/etc/fail2ban/jail.local']
         - ['./vol', '/srv/']
 
-########
-
-    - name: srv-vol-data-mkdir
+    - name: mkdir-srv-vol-data
       become: true
       file:
         path: /srv/vol/data
         state: directory
+
+    - name: sync-git-repos
+      tags: sync-git-repos
+      become: true
+      git:
+        repo: '{{ item[0] }}'
+        dest: '{{ item[1] }}'
+      loop:
+        - ['https://github.com/gonapps-org/gonapps.com-home', '/srv/vol/data/gonapps.com-home']
+        - ['https://github.com/gohugoio/hugo', '/opt/hugo']
+
+    - name: install-hugo
+      become: true
+      command: go install --tags extended
+      environment:
+        GOPATH: /usr/local/go
+      args:
+        chdir: /opt/hugo
+        creates: /usr/local/go/bin/hugo
+
+    - name: run-hugo
+      become: true
+      command: /usr/local/go/bin/hugo
+      args:
+        chdir: /srv/vol/data/gonapps.com-home
+        creates: /srv/vol/data/gonapps.com-home/public
+
+########
 
     - name: openssl-ca-key
       become: true
