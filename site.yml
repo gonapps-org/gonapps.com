@@ -3,6 +3,11 @@
   hosts: all
   tasks:
 ########
+    - name: set-hostname
+      become: true
+      hostname:
+        name: gonapps-server
+
     - name: uninstall-packages
       become: true
       dnf:
@@ -11,6 +16,8 @@
       loop:
         - firewalld
         - docker
+        - podman
+        - podman-manpages
 
     - name: download-docker-ce
       become: true
@@ -73,6 +80,7 @@
         src: "{{ item[0] }}"
         dest: "{{ item[1] }}"
         checksum: true
+        recursive: true
       loop:
         - ['./conf/etc/sysconfig/iptables', '/etc/sysconfig/iptables']
         - ['./conf/srv/docker-compose.yml', '/srv/docker-compose.yml']
@@ -151,28 +159,35 @@
 
     - name: firewalld-service
       become: true
-      service:
+      systemd:
         name: firewalld
         state: stopped
         enabled: false
 
     - name: iptables-service
       become: true
-      service:
+      systemd:
         name: iptables
         state: started
         enabled: true
 
     - name: fail2ban-service
       become: true
-      service:
+      systemd:
         name: fail2ban
+        state: started
+        enabled: true
+
+    - name: cockpit-service
+      become: true
+      systemd:
+        name: cockpit.socket
         state: started
         enabled: true
 
     - name: docker-service
       become: true
-      service:
+      systemd:
         name: docker
         state: started
         enabled: true
