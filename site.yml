@@ -77,12 +77,9 @@
     - name: copy-files
       tags: copy-files
       become: true
-      synchronize:
+      copy:
         src: "{{ item[0] }}"
         dest: "{{ item[1] }}"
-        checksum: true
-        recursive: true
-        mode: push
       loop:
         - ['./conf/etc/sysconfig/iptables', '/etc/sysconfig/iptables']
         - ['./conf/srv/docker-compose.yml', '/srv/docker-compose.yml']
