@@ -81,6 +81,7 @@
         dest: "{{ item[1] }}"
         checksum: true
         recursive: true
+        push: true
       loop:
         - ['./conf/etc/sysconfig/iptables', '/etc/sysconfig/iptables']
         - ['./conf/srv/docker-compose.yml', '/srv/docker-compose.yml']
