@@ -75,6 +75,7 @@
 ########
 
     - name: copy-files
+      tags: copy-files
       become: true
       synchronize:
         src: "{{ item[0] }}"
