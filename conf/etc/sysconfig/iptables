@@ -3,7 +3,7 @@
 :FORWARD DROP [0:0]
 :OUTPUT ACCEPT [0:0]
 -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
--A INPUT -p tcp -m conntrack --ctstate NEW -m multiport --dports 22,80,443 -j ACCEPT
+-A INPUT -p tcp -m conntrack --ctstate NEW -m multiport --dports 22,80,443,9090 -j ACCEPT
 -A INPUT -i lo -j ACCEPT
 -A INPUT -p icmp -j ACCEPT
 -A FORWARD -j REJECT --reject-with icmp-host-prohibited
