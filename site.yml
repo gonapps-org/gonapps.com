@@ -5,11 +5,13 @@
 ########
 
     - name: set-hostname
+      tags: set-hostname
       become: true
       hostname:
         name: gonapps-vm
 
     - name: uninstall-dnf-packages
+      tags: uninstall-dnf-packages
       become: true
       dnf:
         name: '{{ item }}'
@@ -21,6 +23,7 @@
         - podman-manpages
 
     - name: download-docker-ce
+      tags: download-docker-ce
       become: true
       uri:
         url: https://download.docker.com/linux/centos/docker-ce.repo
@@ -30,11 +33,13 @@
           - 304
 
     - name: dnf-makecache
+      tags: dnf-makecache
       become: true
       dnf:
         update_cache: true
 
     - name: install-dnf-packages
+      tags: install-dnf-packages
       become: true
       dnf:
         name: '{{ item }}'
@@ -54,6 +59,7 @@
         - iptables-services
         - libselinux
         - libselinux-utils
+        - npm
         - policycoreutils
         - policycoreutils-python-utils
         - python3
@@ -63,12 +69,14 @@
         - python3-policycoreutils
 
     - name: disable-selinux
+      tags: disable-selinux
       become: true
       selinux:
         policy: targeted
         state: permissive
 
     - name: install-pip3-packages
+      tags: install-pip3-packages
       become: true
       pip:
         executable: pip3
@@ -93,6 +101,7 @@
         - ['./vol', '/srv/']
 
     - name: mkdir-srv-vol-data
+      tags: mkdir-srv-vol-data
       become: true
       file:
         path: /srv/vol/data
@@ -109,6 +118,7 @@
         - ['https://github.com/gohugoio/hugo', '/opt/hugo']
 
     - name: install-hugo
+      tags: install-hugo
       become: true
       command: go install --tags extended
       environment:
@@ -118,6 +128,7 @@
         creates: /usr/local/go/bin/hugo
 
     - name: run-hugo
+      tags: run-hugo
       become: true
       command: /usr/local/go/bin/hugo
       args:
@@ -127,18 +138,21 @@
 ########
 
     - name: openssl-ca-key
+      tags: make-openssl-cert
       become: true
       openssl_privatekey:
         path: /srv/vol/data/server-ca.pem
         size: 4096
 
     - name: openssl-ca-csr
+      tags: make-openssl-cert
       become: true
       openssl_csr:
         path: /srv/vol/data/server-ca.csr
         privatekey_path: /srv/vol/data/server-ca.pem
 
     - name: openssl-ca-cert
+      tags: make-openssl-cert
       become: true
       openssl_certificate:
         path: /srv/vol/data/server-ca.crt
@@ -147,18 +161,21 @@
         provider: selfsigned
 
     - name: openssl-key
+      tags: make-openssl-cert
       become: true
       openssl_privatekey:
         path: /srv/vol/data/server.pem
         size: 4096
 
     - name: openssl-csr
+      tags: make-openssl-cert
       become: true
       openssl_csr:
         path: /srv/vol/data/server.csr
         privatekey_path: /srv/vol/data/server.pem
 
     - name: openssl-cert
+      tags: make-openssl-cert
       become: true
       openssl_certificate:
         path: /srv/vol/data/server.crt
@@ -171,12 +188,14 @@
 ########
 
     - name: add-group
+      tags: add-group
       become: true
       group:
         name: 'docker'
         state: present
 
     - name: add-group-user
+      tags: add-group-user
       become: true
       user:
         name: '{{ ansible_user_id }}'
@@ -184,11 +203,13 @@
         append: yes
 
     - name: reset-ssh
+      tags: reset-ssh
       meta: reset_connection
 
 ########
 
     - name: firewalld-service
+      tags: service
       become: true
       systemd:
         name: firewalld
@@ -196,6 +217,7 @@
         enabled: false
 
     - name: iptables-service
+      tags: service
       become: true
       systemd:
         name: iptables
@@ -203,6 +225,7 @@
         enabled: true
 
     - name: fail2ban-service
+      tags: service
       become: true
       systemd:
         name: fail2ban
@@ -210,6 +233,7 @@
         enabled: true
 
     - name: cockpit-service
+      tags: service
       become: true
       systemd:
         name: cockpit.socket
@@ -217,6 +241,7 @@
         enabled: true
 
     - name: docker-service
+      tags: service
       become: true
       systemd:
         name: docker
@@ -224,9 +249,6 @@
         enabled: true
 
     - name: docker-compose
+      tags: docker-compose
       docker_compose:
         project_src: /srv
-
-#    - name: reboot
-#      become: true
-#      reboot:
