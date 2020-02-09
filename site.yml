@@ -68,6 +68,16 @@
         - python3-pip
         - python3-policycoreutils
 
+    - name: install-hugo
+      tags: install-hugo
+      become: true
+      command: go install --tags extended
+      environment:
+        GOPATH: /usr/local/go
+      args:
+        chdir: /opt/hugo
+        creates: /usr/local/go/bin/hugo
+
     - name: disable-selinux
       tags: disable-selinux
       become: true
@@ -114,18 +124,21 @@
         repo: '{{ item[0] }}'
         dest: '{{ item[1] }}'
       loop:
-        - ['https://github.com/gonapps-org/gonapps.com-home', '/srv/vol/data/gonapps.com-home']
         - ['https://github.com/gohugoio/hugo', '/opt/hugo']
+        - ['https://github.com/gonapps-org/gonapps.com-home', '/srv/vol/data/gonapps.com-home']
+        - ['https://github.com/gonapps-org/calc', '/srv/vol/data/calc']
+        - ['https://github.com/gonapps-org/libgenc', '/srv/vol/data/libgenc']
+        - ['https://github.com/stellar-fighter/stellar-fighter', '/srv/vol/data/stellar-fighter']
+        - ['https://github.com/vinbero/vinbero', '/srv/vol/data/vinbero']
 
-    - name: install-hugo
-      tags: install-hugo
-      become: true
-      command: go install --tags extended
-      environment:
-        GOPATH: /usr/local/go
+    - name: run-npm-install
+      tags: run-npm-install
+      command: npm install
       args:
-        chdir: /opt/hugo
-        creates: /usr/local/go/bin/hugo
+        chdir: '{{ item }}'
+      loop:
+        - /srv/vol/data/calc
+        - /srv/vol/data/stellar-fighter
 
     - name: run-hugo
       tags: run-hugo
