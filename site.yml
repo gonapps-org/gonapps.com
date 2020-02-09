@@ -133,7 +133,8 @@
       command: /usr/local/go/bin/hugo
       args:
         chdir: /srv/vol/data/gonapps.com-home
-        creates: /srv/vol/data/gonapps.com-home/public
+        creates:
+          - /srv/vol/data/gonapps.com-home/public/index.html
 
 ########
 
