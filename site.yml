@@ -220,7 +220,7 @@
       become: true
       systemd:
         name: docker
-        state: started
+        state: restarted
         enabled: true
 
     - name: docker-compose
