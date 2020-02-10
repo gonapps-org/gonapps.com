@@ -68,16 +68,6 @@
         - python3-pip
         - python3-policycoreutils
 
-    - name: install-hugo
-      tags: install-hugo
-      become: true
-      command: go install --tags extended
-      environment:
-        GOPATH: /usr/local/go
-      args:
-        chdir: /opt/hugo
-        creates: /usr/local/go/bin/hugo
-
     - name: disable-selinux
       tags: disable-selinux
       become: true
@@ -98,28 +88,49 @@
 
 ########
 
-    - name: copy-files
-      tags: copy-files
+    - name: mkdir-opt-hugo
+      tags: mkdir-opt-hugo
+      become: true
+      file:
+        path: /opt/hugo
+        state: directory
+        mode: '777'
+
+    - name: chmod-srv
+      tags: chmod-srv
+      become: true
+      file:
+        path: /srv
+        state: directory
+        mode: '777'
+
+    - name: mkdir-srv-vol-data
+      tags: mkdir-srv-vol-data
+      file:
+        path: /srv/vol/data
+        state: directory
+
+    - name: sudo-copy-files
+      tags: sudo-copy-files
       become: true
       copy:
         src: '{{ item[0] }}'
         dest: '{{ item[1] }}'
       loop:
         - ['./conf/etc/sysconfig/iptables', '/etc/sysconfig/iptables']
-        - ['./conf/srv/docker-compose.yml', '/srv/docker-compose.yml']
         - ['./conf/etc/fail2ban/jail.local', '/etc/fail2ban/jail.local']
-        - ['./vol', '/srv/']
 
-    - name: mkdir-srv-vol-data
-      tags: mkdir-srv-vol-data
-      become: true
-      file:
-        path: /srv/vol/data
-        state: directory
+    - name: copy-files
+      tags: copy-files
+      copy:
+        src: '{{ item[0] }}'
+        dest: '{{ item[1] }}'
+      loop:
+        - ['./conf/srv/docker-compose.yml', '/srv/docker-compose.yml']
+        - ['./vol', '/srv']
 
     - name: sync-git-repos
       tags: sync-git-repos
-      become: true
       git:
         repo: '{{ item[0] }}'
         dest: '{{ item[1] }}'
@@ -131,6 +142,16 @@
         - ['https://github.com/stellar-fighter/stellar-fighter', '/srv/vol/data/stellar-fighter']
         - ['https://github.com/vinbero/vinbero', '/srv/vol/data/vinbero']
 
+    - name: install-hugo
+      tags: install-hugo
+      become: true
+      command: go install --tags extended
+      environment:
+        GOPATH: /usr/local/go
+      args:
+        chdir: /opt/hugo
+        creates: /usr/local/go/bin/hugo
+
     - name: run-npm-install
       tags: run-npm-install
       command: npm install
@@ -140,9 +161,27 @@
         - /srv/vol/data/calc
         - /srv/vol/data/stellar-fighter
 
+    - name: run-npm-run-build
+      tags: run-npm-run-build
+      command: npm run build
+      args:
+        chdir: '{{ item }}'
+      loop:
+        - /srv/vol/data/calc
+        - /srv/vol/data/stellar-fighter
+
+    - name: local-copy-files
+      tags: local-copy-files
+      copy:
+        remote_src: yes
+        src: '{{ item[0] }}'
+        dest: '{{ item[1] }}'
+      loop:
+        - ['/srv/vol/data/calc/dist/', '/srv/vol/data/gonapps.com-home/content/apps/calc']
+        - ['/srv/vol/data/stellar-fighter/dist/', '/srv/vol/data/gonapps.com-home/content/apps/stellar-fighter']
+
     - name: run-hugo
       tags: run-hugo
-      become: true
       command: /usr/local/go/bin/hugo
       args:
         chdir: /srv/vol/data/gonapps.com-home
@@ -153,21 +192,18 @@
 
     - name: openssl-ca-key
       tags: make-openssl-cert
-      become: true
       openssl_privatekey:
         path: /srv/vol/data/server-ca.pem
         size: 4096
 
     - name: openssl-ca-csr
       tags: make-openssl-cert
-      become: true
       openssl_csr:
         path: /srv/vol/data/server-ca.csr
         privatekey_path: /srv/vol/data/server-ca.pem
 
     - name: openssl-ca-cert
       tags: make-openssl-cert
-      become: true
       openssl_certificate:
         path: /srv/vol/data/server-ca.crt
         privatekey_path: /srv/vol/data/server-ca.pem
@@ -176,21 +212,18 @@
 
     - name: openssl-key
       tags: make-openssl-cert
-      become: true
       openssl_privatekey:
         path: /srv/vol/data/server.pem
         size: 4096
 
     - name: openssl-csr
       tags: make-openssl-cert
-      become: true
       openssl_csr:
         path: /srv/vol/data/server.csr
         privatekey_path: /srv/vol/data/server.pem
 
     - name: openssl-cert
       tags: make-openssl-cert
-      become: true
       openssl_certificate:
         path: /srv/vol/data/server.crt
         privatekey_path: /srv/vol/data/server.pem
