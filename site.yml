@@ -255,45 +255,37 @@
 
 ########
 
-    - name: firewalld-service
+    - name: stop-service
       tags: service
       become: true
       systemd:
-        name: firewalld
+        name: '{{ item }}'
         state: stopped
         enabled: false
+      loop:
+        - firewalld
 
-    - name: iptables-service
-      tags: service
+    - name: start-service
+      tags: start-service
       become: true
       systemd:
-        name: iptables
+        name: '{{ item }}'
         state: started
         enabled: true
+      loop:
+        - iptables
+        - fail2ban
+        - cockpit.socket
 
-    - name: fail2ban-service
+    - name: restart-service
       tags: service
       become: true
       systemd:
-        name: fail2ban
-        state: started
-        enabled: true
-
-    - name: cockpit-service
-      tags: service
-      become: true
-      systemd:
-        name: cockpit.socket
-        state: started
-        enabled: true
-
-    - name: docker-service
-      tags: service
-      become: true
-      systemd:
-        name: docker
+        name: '{{ item }}'
         state: restarted
         enabled: true
+      loop:
+        - docker
 
     - name: docker-compose
       tags: docker-compose
