@@ -1,5 +1,5 @@
 ---
-- name: gonapps.com-ansible
+- name: gonnux.com-ansible
   hosts: all
   tasks:
 ########
@@ -8,7 +8,7 @@
       tags: set-hostname
       become: true
       hostname:
-        name: gonapps-vm
+        name: gonnux.com-vm
 
     - name: uninstall-dnf-packages
       tags: uninstall-dnf-packages
@@ -88,27 +88,24 @@
 
 ########
 
-    - name: mkdir-opt-hugo
-      tags: mkdir-opt-hugo
-      become: true
+    - name: dirs-777
+      tags: dirs-777
       file:
-        path: /opt/hugo
+        path: '{{ item }}'
         state: directory
         mode: '777'
+      loop:
+        - '/opt/hugo'
+        - '/srv'
 
-    - name: chmod-srv
-      tags: chmod-srv
-      become: true
+    - name: dirs
+      tags: dirs
       file:
-        path: /srv
+        path: '{{ item }}'
         state: directory
-        mode: '777'
-
-    - name: mkdir-srv-vol-data
-      tags: mkdir-srv-vol-data
-      file:
-        path: /srv/vol/data
-        state: directory
+      loop:
+        - '/srv/vol/data'
+        - '/srv/vol/data/public'
 
     - name: sudo-copy-files
       tags: sudo-copy-files
@@ -136,10 +133,10 @@
         dest: '{{ item[1] }}'
       loop:
         - ['https://github.com/gohugoio/hugo', '/opt/hugo']
-        - ['https://github.com/gonapps-org/gonapps.com-home', '/srv/vol/data/gonapps.com-home']
-        - ['https://github.com/gonapps-org/calc', '/srv/vol/data/calc']
-        - ['https://github.com/gonapps-org/libgenc', '/srv/vol/data/libgenc']
+        - ['https://github.com/gonnux/gonnux.com-site', '/srv/vol/data/gonnux.com-site']
+        - ['https://github.com/gonnux/calc', '/srv/vol/data/calc']
         - ['https://github.com/stellar-fighter/stellar-fighter', '/srv/vol/data/stellar-fighter']
+        - ['https://github.com/gonnux/jamo', '/srv/vol/data/jamo']
         - ['https://github.com/vinbero/vinbero', '/srv/vol/data/vinbero']
 
     - name: install-hugo
@@ -160,6 +157,7 @@
       loop:
         - /srv/vol/data/calc
         - /srv/vol/data/stellar-fighter
+        - /srv/vol/data/jamo
 
     - name: run-npm-run-build
       tags: run-npm-run-build
@@ -169,6 +167,7 @@
       loop:
         - /srv/vol/data/calc
         - /srv/vol/data/stellar-fighter
+        - /srv/vol/data/jamo
 
     - name: local-copy-files
       tags: local-copy-files
@@ -177,16 +176,28 @@
         src: '{{ item[0] }}'
         dest: '{{ item[1] }}'
       loop:
-        - ['/srv/vol/data/calc/dist/', '/srv/vol/data/gonapps.com-home/content/apps/calc']
-        - ['/srv/vol/data/stellar-fighter/dist/', '/srv/vol/data/gonapps.com-home/content/apps/stellar-fighter']
+        - ['/srv/vol/data/calc/dist/', '/srv/vol/data/public/apps/calc']
+        - ['/srv/vol/data/stellar-fighter/dist/', '/srv/vol/data/public/apps/stellar-fighter']
+        - ['/srv/vol/data/jamo/', '/srv/vol/data/public/apps/jamo']
+
+    - name: create-symlinks
+      tags: create-symlinks
+      file:
+        src: '{{ item[0] }}'
+        dest: '{{ item[1] }}'
+        state: link
+      loop:
+        - ['/srv/vol/data/calc/hugo.json', '/srv/vol/data/gonnux.com-site/data/apps/calc/hugo.json']
+        - ['/srv/vol/data/stellar-fighter/hugo.json', '/srv/vol/data/gonnux.com-site/data/apps/stellar-fighter/hugo.json']
+        - ['/srv/vol/data/jamo/hugo.json', '/srv/vol/data/gonnux.com-site/data/apps/jamo/hugo.json']
 
     - name: run-hugo
       tags: run-hugo
-      command: /usr/local/go/bin/hugo
+      command: /usr/local/go/bin/hugo -d /srv/vol/data/public
       args:
-        chdir: /srv/vol/data/gonapps.com-home
+        chdir: /srv/vol/data/gonnux.com-site
         creates:
-          - /srv/vol/data/gonapps.com-home/public/index.html
+          - /srv/vol/data/public/index.html
 
 ########
 

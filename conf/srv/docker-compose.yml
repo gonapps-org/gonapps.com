@@ -5,7 +5,7 @@ web:
   volumes:
      - ./vol/conf/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
      - ./vol/conf/owasp-crs-rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf:/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf:ro
-     - ./vol/data/gonapps.com-home/public/:/usr/share/nginx/html/:ro
+     - ./vol/data/public/:/usr/share/nginx/html/:ro
      - ./vol/data/server.crt:/srv/server.crt:ro
      - ./vol/data/server.pem:/srv/server.pem:ro
      - ./vol/data/server.csr:/srv/server.csr:ro
@@ -26,4 +26,4 @@ blog:
   volumes:
     - ./vol/data/ghost-blog/:/var/lib/ghost/content/
   environment:
-    url: "http://gonapps.com/blog"
+    url: "http://gonnux.com/blog"
