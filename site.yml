@@ -1,8 +1,19 @@
 ---
 - name: gonnux.com-ansible
   hosts: all
+  gather_facts: yes
   tasks:
 ########
+    - name: print-facts
+      tags: print-facts
+      debug:
+        var: ansible_facts
+
+    - name: assert-distribution
+      assert:
+        that:
+          - '"{{ ansible_distribution }}" == "Ubuntu"'
+          - '"{{ ansible_distribution_release }}" == "focal"'
 
     - name: set-hostname
       tags: set-hostname
@@ -10,102 +21,75 @@
       hostname:
         name: gonnux.com-vm
 
-    - name: uninstall-dnf-packages
-      tags: uninstall-dnf-packages
+    - name: update-upgrade-apt
       become: true
-      dnf:
-        name: '{{ item }}'
-        state: absent
-      loop:
-        - docker
-        - firewalld
-        - podman
-        - podman-manpages
+      apt:
+        upgrade: 'yes'
+        update_cache: yes
+        cache_valid_time: 86400 #One day
 
-    - name: download-docker-ce
-      tags: download-docker-ce
+    - name: install-apt-packages
+      tags: install-apt-packages
       become: true
-      uri:
-        url: https://download.docker.com/linux/centos/docker-ce.repo
-        dest: /etc/yum.repos.d/docker-ce.repo
-        status_code:
-          - 200
-          - 304
-
-    - name: dnf-makecache
-      tags: dnf-makecache
-      become: true
-      dnf:
-        update_cache: true
-
-    - name: install-dnf-packages
-      tags: install-dnf-packages
-      become: true
-      dnf:
+      apt:
         name: '{{ item }}'
         state: latest
       loop:
-        - https://download.docker.com/linux/centos/7/x86_64/stable/Packages/containerd.io-1.2.2-3.3.el7.x86_64.rpm
-        - https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
         - cockpit
-        - docker-ce
-        - epel-release
-        - fail2ban
-        - gcc
-        - gcc-c++
-        - git
-        - go
-        - iptables-utils
-        - iptables-services
-        - libselinux
-        - libselinux-utils
-        - npm
-        - policycoreutils
-        - policycoreutils-python-utils
-        - python3
-        - python3-devel
-        - python3-libselinux
-        - python3-pip
-        - python3-policycoreutils
-
-    - name: disable-selinux
-      tags: disable-selinux
-      become: true
-      selinux:
-        policy: targeted
-        state: permissive
-
-    - name: install-pip3-packages
-      tags: install-pip3-packages
-      become: true
-      pip:
-        executable: pip3
-        name: '{{ item }}'
-        state: latest
-      loop:
         - docker
         - docker-compose
+        - fail2ban
+        - gcc
+        - g++
+        - git
+        - iptables-persistent
+        - policycoreutils
+        - selinux-basics
+        - selinux-utils
+
+          #    - name: disable-selinux
+          #      tags: disable-selinux
+          #      become: true
+          #      ansible.posix.selinux:
+          #        policy: targeted
+          #        state: permissive
+    - name: install-minikube
+      tags: install-minikube
+      become: true
+      get_url:
+        url: https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+        dest: /usr/bin/minikube
+        mode: 0755
+
+    - name: get-kubectl-stable-release
+      tags: get-kubectl-stable-release
+      uri:
+        url: https://dl.k8s.io/release/stable.txt
+        return_content: yes
+      register: kubectl_stable_release
+
+    - name: install-kubectl
+      tags: install-kubectl
+      become: true
+      get_url:
+        url: "https://dl.k8s.io/release/{{ kubectl_stable_release.content }}/bin/linux/amd64/kubectl"
+        dest: /usr/bin/kubectl
+        mode: 0755
+
+    - name: start-minikube
+      tags: start-minikube
+      command: minikube start
 
 ########
 
-    - name: dirs-777
-      tags: dirs-777
-      file:
-        path: '{{ item }}'
-        state: directory
-        mode: '777'
-      loop:
-        - '/opt/hugo'
-        - '/srv'
-
-    - name: dirs
-      tags: dirs
+    - name: make-dirs
+      tags: make-dirs
+      become: true
       file:
         path: '{{ item }}'
         state: directory
       loop:
         - '/srv/vol/data'
-        - '/srv/vol/data/public'
 
     - name: sudo-copy-files
       tags: sudo-copy-files
@@ -114,107 +98,30 @@
         src: '{{ item[0] }}'
         dest: '{{ item[1] }}'
       loop:
-        - ['./conf/etc/sysconfig/iptables', '/etc/sysconfig/iptables']
+        - ['./conf/etc/iptables', '/etc/iptables']
         - ['./conf/etc/fail2ban/jail.local', '/etc/fail2ban/jail.local']
-
-    - name: copy-files
-      tags: copy-files
-      copy:
-        src: '{{ item[0] }}'
-        dest: '{{ item[1] }}'
-      loop:
-        - ['./conf/srv/docker-compose.yml', '/srv/docker-compose.yml']
+        - ['./conf/srv/', '/srv']
         - ['./vol', '/srv']
-
-    - name: sync-git-repos
-      tags: sync-git-repos
-      git:
-        repo: '{{ item[0] }}'
-        dest: '{{ item[1] }}'
-      loop:
-        - ['https://github.com/gohugoio/hugo', '/opt/hugo']
-        - ['https://github.com/gonnux/gonnux.com-site', '/srv/vol/data/gonnux.com-site']
-        - ['https://github.com/gonnux/calc', '/srv/vol/data/calc']
-        - ['https://github.com/stellar-fighter/stellar-fighter', '/srv/vol/data/stellar-fighter']
-        - ['https://github.com/gonnux/jamo', '/srv/vol/data/jamo']
-        - ['https://github.com/vinbero/vinbero', '/srv/vol/data/vinbero']
-
-    - name: install-hugo
-      tags: install-hugo
-      become: true
-      command: go install --tags extended
-      environment:
-        GOPATH: /usr/local/go
-      args:
-        chdir: /opt/hugo
-        creates: /usr/local/go/bin/hugo
-
-    - name: run-npm-install
-      tags: run-npm-install
-      command: npm install
-      args:
-        chdir: '{{ item }}'
-      loop:
-        - /srv/vol/data/calc
-        - /srv/vol/data/stellar-fighter
-        - /srv/vol/data/jamo
-
-    - name: run-npm-run-build
-      tags: run-npm-run-build
-      command: npm run build
-      args:
-        chdir: '{{ item }}'
-      loop:
-        - /srv/vol/data/calc
-        - /srv/vol/data/stellar-fighter
-        - /srv/vol/data/jamo
-
-    - name: local-copy-files
-      tags: local-copy-files
-      copy:
-        remote_src: yes
-        src: '{{ item[0] }}'
-        dest: '{{ item[1] }}'
-      loop:
-        - ['/srv/vol/data/calc/dist/', '/srv/vol/data/public/apps/calc']
-        - ['/srv/vol/data/stellar-fighter/dist/', '/srv/vol/data/public/apps/stellar-fighter']
-        - ['/srv/vol/data/jamo/', '/srv/vol/data/public/apps/jamo']
-
-    - name: create-symlinks
-      tags: create-symlinks
-      file:
-        src: '{{ item[0] }}'
-        dest: '{{ item[1] }}'
-        state: link
-      loop:
-        - ['/srv/vol/data/calc/hugo.json', '/srv/vol/data/gonnux.com-site/data/apps/calc/hugo.json']
-        - ['/srv/vol/data/stellar-fighter/hugo.json', '/srv/vol/data/gonnux.com-site/data/apps/stellar-fighter/hugo.json']
-        - ['/srv/vol/data/jamo/hugo.json', '/srv/vol/data/gonnux.com-site/data/apps/jamo/hugo.json']
-
-    - name: run-hugo
-      tags: run-hugo
-      command: /usr/local/go/bin/hugo -d /srv/vol/data/public
-      args:
-        chdir: /srv/vol/data/gonnux.com-site
-        creates:
-          - /srv/vol/data/public/index.html
 
 ########
 
     - name: openssl-ca-key
       tags: make-openssl-cert
+      become: true
       openssl_privatekey:
         path: /srv/vol/data/server-ca.pem
         size: 4096
 
     - name: openssl-ca-csr
       tags: make-openssl-cert
+      become: true
       openssl_csr:
         path: /srv/vol/data/server-ca.csr
         privatekey_path: /srv/vol/data/server-ca.pem
 
     - name: openssl-ca-cert
       tags: make-openssl-cert
+      become: true
       openssl_certificate:
         path: /srv/vol/data/server-ca.crt
         privatekey_path: /srv/vol/data/server-ca.pem
@@ -223,18 +130,21 @@
 
     - name: openssl-key
       tags: make-openssl-cert
+      become: true
       openssl_privatekey:
         path: /srv/vol/data/server.pem
         size: 4096
 
     - name: openssl-csr
       tags: make-openssl-cert
+      become: true
       openssl_csr:
         path: /srv/vol/data/server.csr
         privatekey_path: /srv/vol/data/server.pem
 
     - name: openssl-cert
       tags: make-openssl-cert
+      become: true
       openssl_certificate:
         path: /srv/vol/data/server.crt
         privatekey_path: /srv/vol/data/server.pem
@@ -266,16 +176,6 @@
 
 ########
 
-    - name: stop-service
-      tags: service
-      become: true
-      systemd:
-        name: '{{ item }}'
-        state: stopped
-        enabled: false
-      loop:
-        - firewalld
-
     - name: start-service
       tags: start-service
       become: true
@@ -287,18 +187,9 @@
         - iptables
         - fail2ban
         - cockpit.socket
-
-    - name: restart-service
-      tags: service
-      become: true
-      systemd:
-        name: '{{ item }}'
-        state: restarted
-        enabled: true
-      loop:
         - docker
 
     - name: docker-compose
       tags: docker-compose
-      docker_compose:
+      community.docker.docker_compose:
         project_src: /srv

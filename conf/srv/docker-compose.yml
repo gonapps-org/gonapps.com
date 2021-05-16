@@ -1,29 +1,20 @@
-web:
+nginx:
   restart: always
-  container_name: web
+  container_name: nginx
   image: owasp/modsecurity-crs:v3.2-modsec3-nginx
   volumes:
      - ./vol/conf/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
      - ./vol/conf/owasp-crs-rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf:/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf:ro
-     - ./vol/data/public/:/usr/share/nginx/html/:ro
      - ./vol/data/server.crt:/srv/server.crt:ro
      - ./vol/data/server.pem:/srv/server.pem:ro
      - ./vol/data/server.csr:/srv/server.csr:ro
-
-  net: host
   ports:
      - 80:80
      - 443:443
   environment:
     PARANOIA: 5
 
-blog:
+web-home:
   restart: always
-  container_name: blog
-  image: ghost:alpine
-  ports:
-    - 8001:2368
-  volumes:
-    - ./vol/data/ghost-blog/:/var/lib/ghost/content/
-  environment:
-    url: "http://gonnux.com/blog"
+  container_name: web-home
+  build: web-home
