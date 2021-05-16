@@ -1,0 +1,13 @@
+[Unit]
+Description=Minikube
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/minikube start
+ExecStop=/usr/bin/minikube stop
+RemainAfterExit=yes
+User=minikube
+Group=minikube
+
+[Install]
+WantedBy=multi-user.target

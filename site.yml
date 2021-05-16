@@ -36,7 +36,7 @@
         state: latest
       loop:
         - cockpit
-        - docker
+        - docker.io
         - fail2ban
         - gcc
         - g++
@@ -64,14 +64,6 @@
       loop:
         - docker-compose
 
-    - name: install-minikube
-      tags: install-minikube
-      become: true
-      get_url:
-        url: https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-        dest: /usr/bin/minikube
-        mode: 0755
-
     - name: get-kubectl-stable-release
       tags: get-kubectl-stable-release
       uri:
@@ -87,9 +79,14 @@
         dest: /usr/bin/kubectl
         mode: 0755
 
-    - name: start-minikube
-      tags: start-minikube
-      command: minikube start
+
+    - name: install-minikube
+      tags: install-minikube
+      become: true
+      get_url:
+        url: https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+        dest: /usr/bin/minikube
+        mode: 0755
 
 ########
 
@@ -109,8 +106,7 @@
         src: '{{ item[0] }}'
         dest: '{{ item[1] }}'
       loop:
-        - ['./conf/etc/iptables', '/etc/iptables']
-        - ['./conf/etc/fail2ban/jail.local', '/etc/fail2ban/jail.local']
+        - ['./conf/etc/', '/etc']
         - ['./conf/srv/', '/srv']
         - ['./vol', '/srv']
 
@@ -170,8 +166,11 @@
       tags: add-group
       become: true
       group:
-        name: 'docker'
+        name: '{{ item }}'
         state: present
+      loop:
+        - docker
+        - minikube
 
     - name: add-group-user
       tags: add-group-user
@@ -180,6 +179,14 @@
         name: '{{ ansible_user_id }}'
         groups: docker
         append: yes
+
+    - name: create-minikube-user
+      tags: create-minikube-user
+      become: true
+      user:
+        name: minikube
+        groups: minikube, docker
+        shell: /usr/bin/false
 
     - name: reset-ssh
       tags: reset-ssh
@@ -199,6 +206,7 @@
         - fail2ban
         - cockpit.socket
         - docker
+        - minikube
 
     - name: docker-compose
       tags: docker-compose
