@@ -37,13 +37,13 @@
       loop:
         - cockpit
         - docker
-        - docker-compose
         - fail2ban
         - gcc
         - g++
         - git
         - iptables-persistent
         - policycoreutils
+        - python3-pip
         - selinux-basics
         - selinux-utils
 
@@ -53,6 +53,17 @@
           #      ansible.posix.selinux:
           #        policy: targeted
           #        state: permissive
+
+    - name: install-pip3-packages
+      tags: install-pip3-packages
+      become: true
+      pip:
+        executable: pip3
+        name: '{{ item }}'
+        state: latest
+      loop:
+        - docker-compose
+
     - name: install-minikube
       tags: install-minikube
       become: true
