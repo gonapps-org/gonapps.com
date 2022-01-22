@@ -21,6 +21,20 @@
       hostname:
         name: gonnux.com-vm
 
+    - name: delete-apt-packages
+      tags: delete-apt-packages
+      become: true
+      apt:
+        name: '{{ item }}'
+        state: absent
+        update_cache: yes
+      loop:
+        - docker
+        - docker-engine
+        - docker.io
+        - containerd
+        - runc
+
     - name: update-upgrade-apt
       become: true
       apt:
@@ -36,7 +50,6 @@
         state: latest
       loop:
         - cockpit
-        - docker.io
         - fail2ban
         - gcc
         - g++
@@ -46,47 +59,51 @@
         - python3-pip
         - selinux-basics
         - selinux-utils
+        - ca-certificates
+        - curl
+        - gnupg
 
-          #    - name: disable-selinux
-          #      tags: disable-selinux
-          #      become: true
-          #      ansible.posix.selinux:
-          #        policy: targeted
-          #        state: permissive
-
-    - name: install-pip3-packages
-      tags: install-pip3-packages
+    - name: add-docker-gpg-apt-key
+      tags: add-docker-gpg-apt-key
       become: true
-      pip:
-        executable: pip3
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: add-docker-repository
+      tags: add-docker-repository
+      become: true
+      apt_repository:
+        repo: 'deb https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable'
+        state: present
+
+    - name: update-upgrade-apt
+      become: true
+      apt:
+        upgrade: 'yes'
+        update_cache: yes
+        cache_valid_time: 86400 #One day
+
+    - name: install-apt-docker-packages
+      tags: install-apt-docker-packages
+      become: true
+      apt:
         name: '{{ item }}'
         state: latest
+        update_cache: yes
+        force: yes
       loop:
-        - docker-compose
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
 
-    - name: get-kubectl-stable-release
-      tags: get-kubectl-stable-release
-      uri:
-        url: https://dl.k8s.io/release/stable.txt
-        return_content: yes
-      register: kubectl_stable_release
+#    - name: disable-selinux
+#      tags: disable-selinux
+#      become: true
+#      ansible.posix.selinux:
+#        policy: targeted
+#        state: permissive
 
-    - name: install-kubectl
-      tags: install-kubectl
-      become: true
-      get_url:
-        url: "https://dl.k8s.io/release/{{ kubectl_stable_release.content }}/bin/linux/amd64/kubectl"
-        dest: /usr/bin/kubectl
-        mode: 0755
-
-
-    - name: install-minikube
-      tags: install-minikube
-      become: true
-      get_url:
-        url: https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-        dest: /usr/bin/minikube
-        mode: 0755
 
 ########
 
@@ -170,7 +187,6 @@
         state: present
       loop:
         - docker
-        - minikube
 
     - name: add-group-user
       tags: add-group-user
@@ -179,14 +195,6 @@
         name: '{{ ansible_user_id }}'
         groups: docker
         append: yes
-
-    - name: create-minikube-user
-      tags: create-minikube-user
-      become: true
-      user:
-        name: minikube
-        groups: minikube, docker
-        shell: /usr/bin/false
 
     - name: reset-ssh
       tags: reset-ssh
@@ -206,9 +214,3 @@
         - fail2ban
         - cockpit.socket
         - docker
-        - minikube
-
-    - name: docker-compose
-      tags: docker-compose
-      community.docker.docker_compose:
-        project_src: /srv

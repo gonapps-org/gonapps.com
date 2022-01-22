@@ -5,8 +5,8 @@ metadata:
   labels:
     app: web-home
 spec:
-  ports:
-  - port: 3000
-    protocol: TCP
   selector:
     app: web-home
+  ports:
+  - port: 3000
+    targetPort: 3000

@@ -4,7 +4,7 @@ services:
   nginx:
     restart: always
     container_name: nginx
-    image: owasp/modsecurity-crs:v3.2-modsec3-nginx
+    image: owasp/modsecurity-crs:nginx
     volumes:
        - ./vol/conf/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
        - ./vol/conf/owasp-crs-rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf:/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf:ro
