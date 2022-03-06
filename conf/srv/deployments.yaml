@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: web-home
+  name: web-home-deploy
   labels:
-    app: web-home
+    deploy: web-home
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: web-home
+      pod: web-home
   template:
     metadata:
       labels:
-        app: web-home
+        pod: web-home
     spec:
       containers:
-      - name: web-home
+      - name: web-home-pod
         image: gonnux/web-home
         ports:
         - containerPort: 3000

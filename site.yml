@@ -19,21 +19,7 @@
       tags: set-hostname
       become: true
       hostname:
-        name: gonnux.com-vm
-
-    - name: delete-apt-packages
-      tags: delete-apt-packages
-      become: true
-      apt:
-        name: '{{ item }}'
-        state: absent
-        update_cache: yes
-      loop:
-        - docker
-        - docker-engine
-        - docker.io
-        - containerd
-        - runc
+        name: '{{ inventory_hostname }}'
 
     - name: update-upgrade-apt
       become: true
@@ -49,61 +35,9 @@
         name: '{{ item }}'
         state: latest
       loop:
-        - cockpit
-        - fail2ban
-        - gcc
-        - g++
-        - git
         - iptables-persistent
-        - policycoreutils
-        - python3-pip
-        - selinux-basics
-        - selinux-utils
-        - ca-certificates
-        - curl
-        - gnupg
-
-    - name: add-docker-gpg-apt-key
-      tags: add-docker-gpg-apt-key
-      become: true
-      apt_key:
-        url: https://download.docker.com/linux/ubuntu/gpg
-        state: present
-
-    - name: add-docker-repository
-      tags: add-docker-repository
-      become: true
-      apt_repository:
-        repo: 'deb https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable'
-        state: present
-
-    - name: update-upgrade-apt
-      become: true
-      apt:
-        upgrade: 'yes'
-        update_cache: yes
-        cache_valid_time: 86400 #One day
-
-    - name: install-apt-docker-packages
-      tags: install-apt-docker-packages
-      become: true
-      apt:
-        name: '{{ item }}'
-        state: latest
-        update_cache: yes
-        force: yes
-      loop:
-        - docker-ce
-        - docker-ce-cli
-        - containerd.io
-
-#    - name: disable-selinux
-#      tags: disable-selinux
-#      become: true
-#      ansible.posix.selinux:
-#        policy: targeted
-#        state: permissive
-
+        - fail2ban
+        - cockpit
 
 ########
 
@@ -129,79 +63,6 @@
 
 ########
 
-    - name: openssl-ca-key
-      tags: make-openssl-cert
-      become: true
-      openssl_privatekey:
-        path: /srv/vol/data/server-ca.pem
-        size: 4096
-
-    - name: openssl-ca-csr
-      tags: make-openssl-cert
-      become: true
-      openssl_csr:
-        path: /srv/vol/data/server-ca.csr
-        privatekey_path: /srv/vol/data/server-ca.pem
-
-    - name: openssl-ca-cert
-      tags: make-openssl-cert
-      become: true
-      openssl_certificate:
-        path: /srv/vol/data/server-ca.crt
-        privatekey_path: /srv/vol/data/server-ca.pem
-        csr_path: /srv/vol/data/server-ca.csr
-        provider: selfsigned
-
-    - name: openssl-key
-      tags: make-openssl-cert
-      become: true
-      openssl_privatekey:
-        path: /srv/vol/data/server.pem
-        size: 4096
-
-    - name: openssl-csr
-      tags: make-openssl-cert
-      become: true
-      openssl_csr:
-        path: /srv/vol/data/server.csr
-        privatekey_path: /srv/vol/data/server.pem
-
-    - name: openssl-cert
-      tags: make-openssl-cert
-      become: true
-      openssl_certificate:
-        path: /srv/vol/data/server.crt
-        privatekey_path: /srv/vol/data/server.pem
-        csr_path: /srv/vol/data/server.csr
-        ownca_path: /srv/vol/data/server-ca.crt
-        ownca_privatekey_path: /srv/vol/data/server-ca.pem
-        provider: ownca
-
-########
-
-    - name: add-group
-      tags: add-group
-      become: true
-      group:
-        name: '{{ item }}'
-        state: present
-      loop:
-        - docker
-
-    - name: add-group-user
-      tags: add-group-user
-      become: true
-      user:
-        name: '{{ ansible_user_id }}'
-        groups: docker
-        append: yes
-
-    - name: reset-ssh
-      tags: reset-ssh
-      meta: reset_connection
-
-########
-
     - name: start-service
       tags: start-service
       become: true
@@ -211,6 +72,10 @@
         enabled: true
       loop:
         - iptables
-        - fail2ban
         - cockpit.socket
-        - docker
+        - fail2ban
+
+    - name: reboot
+      tags: reboot
+      become: true
+      reboot:

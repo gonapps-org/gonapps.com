@@ -1,10 +1,10 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: web-home
+  name: web-home-ingress
 spec:
   defaultBackend:
     service:
-      name: web-home
+      name: web-home-svc
       port:
-        number: 3000
+        number: 80
